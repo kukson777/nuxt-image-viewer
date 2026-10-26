@@ -6,6 +6,8 @@
 
 Full-screen image viewer (lightbox) for Nuxt. The image expands from its place on the page, scrolls with swipes, arrows and keys in an endless strip, zooms with a click, double tap, wheel or pinch, closes with a drag down — and flies back to its place. Springs, inertia and tuned gesture thresholds make it feel like a native photo app.
 
+**[Documentation and live demo →](https://kukson777.github.io/nuxt-image-viewer/)**
+
 - No dependencies besides Nuxt — plain Vue, plain CSS, inline SVG icons
 - Mark images with `<ZoomImage>` or a `data-image-viewer` attribute — no handlers in place
 - Open from code with `useImageViewer()` — with or without thumbnails on the page

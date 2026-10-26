@@ -54,7 +54,7 @@
     "test:watch": "vitest watch",
     "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit",
     "docs:dev": "npm run dev:prepare && cd docs && nuxt dev",
-    "docs:build": "nuxt-module-build build && cd docs && nuxt generate"
+    "docs:build": "nuxt-module-build prepare && nuxt-module-build build && cd docs && nuxt generate"
   },
   "dependencies": {
     "@nuxt/kit": "^4.6.2",

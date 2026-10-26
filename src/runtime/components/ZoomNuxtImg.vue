@@ -4,7 +4,10 @@
 // be zoomed. The caption is shown under it in the viewer. Other attributes (class,
 // sizes, loading, NuxtImg props) pass through to the image. Registered instead of
 // ZoomImage.vue when @nuxt/image is installed
-defineProps<{
+import { computed } from 'vue'
+import { useRuntimeConfig } from '#imports'
+
+const props = defineProps<{
   /** Full-size image. The page shows an optimized copy of it. */
   src: string
   /** Natural width of `src`. */
@@ -15,6 +18,14 @@ defineProps<{
   caption?: string
   alt?: string
 }>()
+
+// NuxtImg adds app.baseURL to the page copy itself; the full image the viewer opens is
+// a plain URL, so a path from public/ needs the base too — or it 404s on a site
+// served from a subfolder (GitHub Pages)
+const { app } = useRuntimeConfig()
+const fullSrc = computed(() => props.src.startsWith('/') && !props.src.startsWith('//')
+  ? app.baseURL.replace(/\/$/, '') + props.src
+  : props.src)
 </script>
 
 <template>
@@ -25,7 +36,7 @@ defineProps<{
     :alt="alt ?? caption ?? ''"
     tabindex="0"
     data-image-viewer
-    :data-image-viewer-src="src"
+    :data-image-viewer-src="fullSrc"
     :data-image-viewer-width="width"
     :data-image-viewer-height="height"
     :data-image-viewer-caption="caption"

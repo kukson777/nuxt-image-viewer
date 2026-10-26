@@ -3,7 +3,7 @@
 const viewer = useImageViewer()
 
 const items = [demoImages.valleyPanorama, demoImages.ocean, demoImages.nightSky, demoImages.bauhaus]
-  .map(({ src, width, height, caption }) => ({ src, width, height, caption, alt: caption }))
+  .map(({ src, width, height, caption }) => ({ src: publicUrl(src), width, height, caption, alt: caption }))
 
 function openGallery() {
   void viewer.open(items)

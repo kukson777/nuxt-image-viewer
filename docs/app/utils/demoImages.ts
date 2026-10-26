@@ -19,3 +19,9 @@ export const demoImages = {
 } satisfies Record<string, DemoImage>
 
 export type DemoImageName = keyof typeof demoImages
+
+// A public/ path as a URL for useImageViewer().open(): on GitHub Pages the site lives in
+// a subfolder, and open() takes URLs as they are
+export function publicUrl(src: string) {
+  return useRuntimeConfig().app.baseURL.replace(/\/$/, '') + src
+}

@@ -146,6 +146,7 @@ function open(index: number) {
   setVariables(true)
   void viewer.open(previews.map((image, i) => ({
     ...image,
+    src: publicUrl(image.src),
     alt: image.caption,
     element: thumbs.value?.[i]?.querySelector('img') ?? undefined,
   })), index, options.value)

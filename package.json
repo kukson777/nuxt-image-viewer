@@ -1,0 +1,78 @@
+{
+  "name": "nuxt-image-viewer",
+  "version": "1.0.0",
+  "description": "Full-screen image viewer (lightbox) for Nuxt: opens from the image on the page, swipe, endless strip, pinch and wheel zoom, drag to close. Native-feeling motion, no dependencies besides Nuxt.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kukson777/nuxt-image-viewer.git"
+  },
+  "homepage": "https://github.com/kukson777/nuxt-image-viewer#readme",
+  "bugs": "https://github.com/kukson777/nuxt-image-viewer/issues",
+  "keywords": [
+    "nuxt",
+    "nuxt-module",
+    "image-viewer",
+    "lightbox",
+    "gallery",
+    "zoom",
+    "pinch-zoom",
+    "swipe",
+    "vue"
+  ],
+  "author": "Ernest Manukyan",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    }
+  },
+  "main": "./dist/module.mjs",
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./dist/types.d.mts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "workspaces": [
+    "playground",
+    "docs"
+  ],
+  "scripts": {
+    "prepack": "nuxt-module-build build",
+    "dev": "npm run dev:prepare && nuxt dev playground",
+    "dev:build": "nuxt build playground",
+    "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
+    "release": "npm run lint && npm run test && npm run prepack && changelogen --release && npm publish && git push --follow-tags",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit",
+    "docs:dev": "npm run dev:prepare && cd docs && nuxt dev",
+    "docs:build": "nuxt-module-build build && cd docs && nuxt generate"
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.6.2",
+    "defu": "^6.1.7"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^3.4.2",
+    "@nuxt/eslint-config": "^1.17.0",
+    "@nuxt/module-builder": "^1.0.3",
+    "@nuxt/schema": "^4.6.2",
+    "@nuxt/test-utils": "^4.3.3",
+    "@types/node": "latest",
+    "changelogen": "^0.6.2",
+    "eslint": "^10.12.0",
+    "nuxt": "^4.6.2",
+    "playwright-core": "^1.64.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3",
+    "vue-tsc": "^3.3.12"
+  }
+}

@@ -57,6 +57,20 @@ Other attributes (`class`, `loading`, `sizes`, …) pass through to the `<img>`.
 
 Click, Enter and Space open the viewer. It scrolls through the images of the closest `[data-image-viewer-group]`, without one — through every image of the page.
 
+### `<ImageViewerGroup>`
+
+A group with options of its own — anything `open()` takes, for its images only, on top of the global options:
+
+```vue
+<template>
+  <ImageViewerGroup :options="{ loop: false, ui: { counter: false } }">
+    <ZoomImage v-for="photo in photos" :key="photo.src" v-bind="photo" />
+  </ImageViewerGroup>
+</template>
+```
+
+It renders a `<div data-image-viewer-group>`; `as="section"` makes it another tag. Its `#prev` / `#next` slots are arrows of your own — see below.
+
 ### Plain `<img>`
 
 The component only sets attributes — any image can be marked:
@@ -104,6 +118,7 @@ watch(viewer.index, i => console.log('now at', i))
 | Member | Type | |
 | --- | --- | --- |
 | `open(items, index?, options?)` | `Promise<void>` | Open. `items` is an array or a single item. Ignored while open. |
+| `configure(options)` | `void` | Options for every viewer from now on, on top of `nuxt.config` — including ones opened by a click. The place for custom `buttons` and `controls`. |
 | `close()` | `void` | Close with the animation. |
 | `next()`, `prev()`, `goTo(index)` | `void` | Scroll. `goTo` takes the shortest way round the endless strip. |
 | `isOpen` | `Readonly<Ref<boolean>>` | `true` from `open()` until closing starts. |
@@ -135,6 +150,8 @@ On the server `useImageViewer()` returns a no-op (`isOpen` is `false`). All type
 | `maxZoom` | `4` | Zoom limit relative to the fitted image. Images zoom up to their natural size but at least 2×. *Per call.* |
 | `closeOnVerticalDrag` | `true` | Close by dragging up or down. *Per call.* |
 | `closeOnBackdropClick` | `true` | Close by a click outside the image. *Per call.* |
+| `idleDelay` | `4000` | Fade the controls out after the mouse rests this long, ms. `0` keeps them. Mouse devices only. *Per call.* |
+| `idleHidesCaption` | `true` | Fade the caption out with the controls; `false` leaves the image with its caption. *Per call.* |
 | `ui` | all `true` | `{ counter, zoom, fullscreen, close, arrows, caption }` — which controls to show. *Per call, partial.* |
 | `labels` | English | `{ dialog, close, zoomIn, zoomOut, fullscreen, exitFullscreen, prev, next }` — accessible names. *Per call, partial.* |
 | `openClass` | `'image-viewer-open'` | Class on `<html>` while open. |
@@ -145,6 +162,73 @@ On the server `useImageViewer()` returns a no-op (`isOpen` is `false`). All type
 | `css` | `true` | Include the default styles. |
 
 Runtime options are also in `useRuntimeConfig().public.imageViewer`, so they can be overridden with `NUXT_PUBLIC_IMAGE_VIEWER_*` environment variables.
+
+## Custom buttons and arrows
+
+Add buttons of your own to the toolbar, before the built-in ones: an icon, a text, or both. Replace the prev / next arrows with your own components. They hold functions and components, so they're set from code — for one gallery in `<ImageViewerGroup>`, for one viewer in `open()`, or for every viewer with `configure()` in a client plugin. The closer setting wins.
+
+```vue
+<script setup lang="ts">
+import type { ImageViewerButton } from 'nuxt-image-viewer'
+
+defineProps<{ photos: { src: string, width: number, height: number }[] }>()
+
+// Only for the viewer of this gallery: a button, and arrows as #prev / #next slots
+const download: ImageViewerButton = {
+  name: 'download',
+  label: 'Download',
+  icon: 'i-lucide-download',
+  onClick: ({ item }) => window.open(item.src),
+}
+</script>
+
+<template>
+  <ImageViewerGroup :options="{ buttons: [download] }">
+    <ZoomImage v-for="photo in photos" :key="photo.src" v-bind="photo" />
+
+    <template #next>
+      <UButton icon="i-lucide-arrow-right" size="xl" />
+    </template>
+  </ImageViewerGroup>
+</template>
+```
+
+For every viewer on the site — no `<ImageViewerGroup>` needed:
+
+```ts
+// plugins/image-viewer.client.ts
+import { UButton } from '#components'
+
+// For every viewer on the site: a click on any <ZoomImage>, and open() from code
+export default defineNuxtPlugin(() => {
+  useImageViewer().configure({
+    buttons: [
+      {
+        name: 'download', // class modifier: .image-viewer__button--download
+        label: 'Download', // accessible name, required for an icon-only button
+        icon: 'i-lucide-download', // Nuxt Icon name (Nuxt UI includes it), or any component
+        onClick: ({ item, index, close }) => {
+          const link = document.createElement('a')
+          link.href = item.src
+          link.download = ''
+          link.click()
+        },
+      },
+      {
+        name: 'share',
+        text: 'Share', // a pill with text, which is also its accessible name
+        onClick: ({ item }) => navigator.share?.({ url: item.src }),
+      },
+    ],
+    // Arrows of your own need no props: the viewer places them, scrolls on their
+    // click and names an icon-only button from the labels
+    controls: {
+      prev: () => h(UButton, { icon: 'i-lucide-arrow-left' }),
+      next: () => h(UButton, { icon: 'i-lucide-arrow-right' }),
+    },
+  })
+})
+```
 
 ## Styling
 
@@ -185,7 +269,7 @@ The default styles live in the `image-viewer` cascade layer, so any unlayered ru
 
 | Class | |
 | --- | --- |
-| `.image-viewer` | Dialog layer, `100vw` × `100%`. Modifiers: `--zoomed`, `--closing`. |
+| `.image-viewer` | Dialog layer, `100vw` × `100%`. Modifiers: `--zoomed`, `--closing`, `--idle` (controls faded out), `--idle-caption` (caption too). |
 | `.image-viewer__backdrop` | Backdrop; its opacity is set inline. |
 | `.image-viewer__track` | Strip, moved by `transform`. |
 | `.image-viewer__slide` | One slide. Modifier: `--current`. |

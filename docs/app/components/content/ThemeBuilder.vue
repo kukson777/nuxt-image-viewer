@@ -28,12 +28,16 @@ const DEFAULTS = {
   maxZoom: 4,
   closeOnVerticalDrag: true,
   closeOnBackdropClick: true,
+  idleDelay: 4000,
+  idleHidesCaption: true,
 }
 
 const theme = reactive<Theme>({ ...presets.Default! })
 const preset = ref('Default')
 const behavior = reactive({ ...DEFAULTS })
 const ui = reactive<ImageViewerUi>({ counter: true, zoom: true, fullscreen: true, close: true, arrows: true, caption: true })
+
+const idleDelayLabel = computed(() => behavior.idleDelay ? `${behavior.idleDelay / 1000} s` : 'never')
 
 function applyPreset(name: string) {
   preset.value = name
@@ -314,6 +318,18 @@ const colorFields = [
           </UFormField>
         </div>
 
+        <UFormField
+          :label="`Hide controls when idle · ${idleDelayLabel}`"
+          size="xs"
+        >
+          <USlider
+            v-model="behavior.idleDelay"
+            :min="0"
+            :max="10000"
+            :step="500"
+          />
+        </UFormField>
+
         <div class="grid grid-cols-2 gap-x-3 gap-y-2">
           <USwitch
             v-model="behavior.loop"
@@ -330,6 +346,12 @@ const colorFields = [
           <USwitch
             v-model="behavior.closeOnBackdropClick"
             label="Backdrop click"
+            size="sm"
+          />
+
+          <USwitch
+            v-model="behavior.idleHidesCaption"
+            label="Idle hides caption"
             size="sm"
           />
 

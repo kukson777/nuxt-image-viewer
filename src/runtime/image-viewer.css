@@ -36,17 +36,22 @@
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     outline: none;
-    cursor: zoom-in;
     color: var(--image-viewer-color, #fff);
     font-family: var(--image-viewer-font, inherit);
   }
 
-  /* While the mouse button is held the image is dragged — scrolled or panned */
-  .image-viewer--zoomed {
+  /* The cursor tells what a click does: over the image it zooms, a zoomed image is
+     dragged, and while the button is held it's dragged — scrolled or panned. Over the
+     backdrop a click closes, so the cursor is a plain one */
+  .image-viewer__zoom {
+    cursor: zoom-in;
+  }
+
+  .image-viewer--zoomed .image-viewer__zoom {
     cursor: grab;
   }
 
-  .image-viewer:active {
+  .image-viewer__zoom:active {
     cursor: grabbing;
   }
 

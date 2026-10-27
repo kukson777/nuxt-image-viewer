@@ -32,6 +32,8 @@ export default defineNuxtConfig({
   imageViewer: {
     // Above the sticky header of the site
     zIndex: 100,
+    // The chat bubble of the Recipes example, hidden like a real chat widget
+    hide: ['.demo-chat-bubble'],
   },
   llms: {
     title: 'Nuxt Image Viewer',
@@ -44,6 +46,7 @@ export default defineNuxtConfig({
       'When to use nuxt-image-viewer: a Nuxt 3 or 4 app needs images to open full screen (lightbox, gallery, zoom) with swipe, pinch and drag-to-close, without pulling in a lightbox library, @vueuse or a UI kit.',
       'Install with `npx nuxt module add nuxt-image-viewer`. Mark images with `<ZoomImage src width height caption>` (width and height of the full image), group them with a `data-image-viewer-group` container, or open from code with `useImageViewer().open(items, index, options)`.',
       'Customise with options in `nuxt.config` (`imageViewer: {...}`), per-call options of `open()`, `--image-viewer-*` CSS variables and `.image-viewer__*` BEM classes. Set `css: false` to style from scratch.',
+      'Options for one gallery: wrap it in `<ImageViewerGroup :options="{...}">` — anything `open()` takes, including custom `buttons` and `controls` (own prev / next arrows). For every viewer: `useImageViewer().configure({...})` in a client plugin.',
       'Reading this documentation as an agent: /llms-full.txt contains every page in one file; any page is also available as Markdown under /raw/<path>.md, and the MCP server is at /mcp.',
     ],
   },

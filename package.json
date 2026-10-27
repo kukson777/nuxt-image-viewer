@@ -1,6 +1,6 @@
 {
   "name": "nuxt-image-viewer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Full-screen image viewer (lightbox) for Nuxt: opens from the image on the page, swipe, endless strip, pinch and wheel zoom, drag to close. Native-feeling motion, no dependencies besides Nuxt.",
   "repository": {
     "type": "git",

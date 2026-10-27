@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, useTemplateRef, watch } from 'vue'
-import type { ImageViewerBehavior, ImageViewerSlide } from '../types'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, resolveDynamicComponent, useTemplateRef, watch } from 'vue'
+import type { ImageViewerBehavior, ImageViewerButton, ImageViewerControls, ImageViewerSlide } from '../types'
 
 /**
  * Full-screen image viewer. Mounted by the plugin (plugin.client.ts) for one opening
@@ -22,7 +22,7 @@ const props = defineProps<{
   items: ImageViewerSlide[]
   /** Image to start from. */
   index: number
-  options: ImageViewerBehavior & { openClass: string }
+  options: ImageViewerBehavior & { openClass: string, buttons: ImageViewerButton[], controls: Partial<ImageViewerControls> }
 }>()
 
 const emit = defineEmits<{
@@ -387,7 +387,26 @@ onMounted(() => {
   ui.value?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: DURATION, easing: EASE })
 })
 
+// The controls fade out when the mouse rests for options.idleDelay — the image is left
+// alone, with or without its caption. Only where there is a mouse (hover: hover): on a
+// touch screen nothing moves between taps, and the controls would never come back.
+// Keys bring them back too — a focused button must not be invisible. Over a button the
+// timer doesn't run
+const idle = ref(false)
+let idleTimer: ReturnType<typeof setTimeout> | undefined
+const tracksIdle = options.idleDelay > 0 && window.matchMedia('(hover: hover)').matches
+
+function wake(overControl = false) {
+  idle.value = false
+  clearTimeout(idleTimer)
+  if (tracksIdle && !overControl)
+    idleTimer = setTimeout(() => idle.value = true, options.idleDelay)
+}
+
+onMounted(() => wake())
+
 onBeforeUnmount(() => {
+  clearTimeout(idleTimer)
   stopMotion()
   unlockScroll()
   root.classList.remove(options.openClass)
@@ -440,7 +459,62 @@ async function close() {
   emit('closed')
 }
 
+// Custom buttons. An icon given as a name is drawn by Nuxt Icon — its global Icon
+// component, also behind Nuxt UI's UIcon. It's looked up only when a name is used, so
+// without Nuxt Icon the module works as long as icons are components
+const iconByName = options.buttons.some(button => typeof button.icon === 'string')
+  ? resolveDynamicComponent('Icon')
+  : undefined
+if (typeof iconByName === 'string')
+  console.warn('[nuxt-image-viewer] Button icons given as names need Nuxt Icon (@nuxt/icon, included in Nuxt UI). Install it or pass an icon component.')
+
+const buttons = options.buttons.map(button => typeof button.icon === 'string'
+  ? { ...button, iconComponent: typeof iconByName === 'string' ? undefined : iconByName, iconName: button.icon }
+  : { ...button, iconComponent: button.icon, iconName: undefined })
+
+// The ends of a strip that isn't endless: the arrow that way is off
+const atFirst = computed(() => !loop && pos.value === 0)
+const atLast = computed(() => !loop && pos.value === total - 1)
+
+// Your own arrows (options.controls) sit in a wrapper that places them and scrolls on a
+// click bubbling from them — the component itself needs nothing. At the ends the
+// wrapper is aria-disabled: dimmed, out of the Tab round, and its click does nothing.
+// Not inert: an inert wrapper lets the click through to the backdrop, which closes
+function ownArrowClick(delta: -1 | 1) {
+  if (!(delta < 0 ? atFirst.value : atLast.value))
+    step(delta)
+}
+
+// Buttons and arrow wrappers are not the backdrop: a press on them starts no gesture
+function isControl(target: EventTarget | null) {
+  return !!(target as Element | null)?.closest('button, .image-viewer__arrow')
+}
+
+// An icon-only button among your own arrows gets its accessible name from the labels
+function nameOwnArrows() {
+  for (const [side, label] of [['prev', options.labels.prev], ['next', options.labels.next]] as const) {
+    const button = stage.value?.querySelector(`div.image-viewer__arrow--${side} :is(button, [role="button"])`)
+    if (button && !button.hasAttribute('aria-label') && !button.textContent?.trim())
+      button.setAttribute('aria-label', label)
+  }
+}
+
+onMounted(nameOwnArrows)
+
+// A custom button with a text grows from a round icon button into a pill
+function buttonClass(button: ImageViewerButton) {
+  return [`image-viewer__button--${button.name}`, { 'image-viewer__button--has-text': button.text }]
+}
+
+// A custom button acts on the current image and may close the viewer
+function runButton(button: ImageViewerButton) {
+  const item = current.value
+  if (item)
+    button.onClick({ item, index: index.value, close })
+}
+
 function onKeydown(event: KeyboardEvent) {
+  wake()
   if (event.key === 'Escape')
     void close()
   else if (event.key === 'ArrowLeft')
@@ -457,7 +531,7 @@ function onKeydown(event: KeyboardEvent) {
 // Focus stays inside the dialog: Tab goes round its buttons
 function trapFocus(event: KeyboardEvent) {
   const buttons = [...stage.value?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []]
-    .filter(button => button.offsetParent)
+    .filter(button => button.offsetParent && !button.closest('[aria-disabled="true"]'))
   if (!buttons.length)
     return
   const at = buttons.indexOf(document.activeElement as HTMLButtonElement)
@@ -492,7 +566,7 @@ function beginSingle(x: number, y: number) {
 }
 
 function onPointerDown(event: PointerEvent) {
-  if (phase.value !== 'open' || (event.target as Element).closest('button'))
+  if (phase.value !== 'open' || isControl(event.target))
     return
   stage.value?.setPointerCapture(event.pointerId)
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
@@ -516,6 +590,8 @@ function onPointerDown(event: PointerEvent) {
 }
 
 function onPointerMove(event: PointerEvent) {
+  if (event.pointerType === 'mouse')
+    wake(isControl(event.target))
   if (!pointers.has(event.pointerId))
     return
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY })
@@ -680,7 +756,12 @@ defineExpose({ close, next: () => step(1), prev: () => step(-1), goTo })
     :aria-label="options.labels.dialog"
     tabindex="-1"
     class="image-viewer"
-    :class="{ 'image-viewer--zoomed': zoomed, 'image-viewer--closing': phase === 'closing' }"
+    :class="{
+      'image-viewer--zoomed': zoomed,
+      'image-viewer--closing': phase === 'closing',
+      'image-viewer--idle': idle,
+      'image-viewer--idle-caption': idle && options.idleHidesCaption,
+    }"
     :style="{ zIndex: options.zIndex }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
@@ -757,6 +838,29 @@ defineExpose({ close, next: () => step(1), prev: () => step(-1), goTo })
 
         <div class="image-viewer__buttons">
           <button
+            v-for="button in buttons"
+            :key="button.name"
+            type="button"
+            class="image-viewer__button"
+            :class="buttonClass(button)"
+            :aria-label="button.label"
+            @click="runButton(button)"
+          >
+            <component
+              :is="button.iconComponent"
+              v-if="button.iconComponent"
+              :name="button.iconName"
+              class="image-viewer__button-icon"
+              aria-hidden="true"
+            />
+
+            <span
+              v-if="button.text"
+              class="image-viewer__button-text"
+            >{{ button.text }}</span>
+          </button>
+
+          <button
             v-if="options.ui.zoom"
             type="button"
             class="image-viewer__button image-viewer__button--zoom"
@@ -807,11 +911,21 @@ defineExpose({ close, next: () => step(1), prev: () => step(-1), goTo })
       </div>
 
       <template v-if="options.ui.arrows && total > 1">
+        <div
+          v-if="options.controls.prev"
+          class="image-viewer__arrow image-viewer__arrow--prev image-viewer__arrow--own"
+          :aria-disabled="atFirst"
+          @click="ownArrowClick(-1)"
+        >
+          <component :is="options.controls.prev" />
+        </div>
+
         <button
+          v-else
           type="button"
           class="image-viewer__button image-viewer__arrow image-viewer__arrow--prev"
           :aria-label="options.labels.prev"
-          :disabled="!loop && pos === 0"
+          :disabled="atFirst"
           @click="step(-1)"
         >
           <svg
@@ -823,11 +937,21 @@ defineExpose({ close, next: () => step(1), prev: () => step(-1), goTo })
           </svg>
         </button>
 
+        <div
+          v-if="options.controls.next"
+          class="image-viewer__arrow image-viewer__arrow--next image-viewer__arrow--own"
+          :aria-disabled="atLast"
+          @click="ownArrowClick(1)"
+        >
+          <component :is="options.controls.next" />
+        </div>
+
         <button
+          v-else
           type="button"
           class="image-viewer__button image-viewer__arrow image-viewer__arrow--next"
           :aria-label="options.labels.next"
-          :disabled="!loop && pos === total - 1"
+          :disabled="atLast"
           @click="step(1)"
         >
           <svg

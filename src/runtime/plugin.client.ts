@@ -8,7 +8,8 @@
 // live DOM nodes the viewer opens from and closes back into.
 import { computed, h, render, shallowReactive } from 'vue'
 import { defu } from 'defu'
-import type { ImageViewerApi, ImageViewerBehavior, ImageViewerItem, ImageViewerOpenOptions, ImageViewerSlide } from './types'
+import { groupOptions } from './groups'
+import type { ImageViewerApi, ImageViewerBehavior, ImageViewerButton, ImageViewerItem, ImageViewerOpenOptions, ImageViewerSlide } from './types'
 import { defineNuxtPlugin, useRuntimeConfig } from '#imports'
 
 type ViewerExposed = Pick<ImageViewerApi, 'close' | 'next' | 'prev' | 'goTo'>
@@ -67,6 +68,21 @@ export default defineNuxtPlugin((nuxtApp) => {
   })
   let container: HTMLElement | null = null
   let instance: ViewerExposed | null = null
+  // Options set from code with configure(): on top of nuxt.config, under the per-call ones
+  let defaults: ImageViewerOpenOptions = {}
+
+  // Buttons and controls hold functions and components, merged by hand: defu would join
+  // the button arrays and merge two components into one object
+  function resolve(overrides: ImageViewerOpenOptions) {
+    const { buttons: own, controls: ownControls, ...rest } = overrides
+    const { buttons: configured, controls: configuredControls, ...base } = defaults
+    const options = defu(rest, base, config) as ImageViewerBehavior & { openClass: string }
+    return {
+      ...options,
+      controls: { ...configuredControls, ...ownControls },
+      buttons: own ?? configured ?? [] as ImageViewerButton[],
+    }
+  }
 
   function unmount() {
     if (!container)
@@ -90,7 +106,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       import('./components/ImageViewer.vue'),
       Promise.all(slides.map(measure)),
     ])
-    const options = defu(overrides, config) as ImageViewerBehavior & { openClass: string }
+    const options = resolve(overrides)
     state.items = slides
     state.index = Math.min(Math.max(index, 0), slides.length - 1)
     state.open = true
@@ -124,7 +140,8 @@ export default defineNuxtPlugin((nuxtApp) => {
       event.preventDefault()
       const root = target.closest<HTMLElement>('[data-image-viewer-group]') ?? document.body
       const images = [...root.querySelectorAll<HTMLImageElement>(SELECTOR)]
-      void open(images.map(fromImage), images.indexOf(target))
+      // An <ImageViewerGroup> brings options of its own
+      void open(images.map(fromImage), images.indexOf(target), groupOptions.get(root))
     }
     document.addEventListener('click', onTrigger)
     document.addEventListener('keydown', onTrigger)
@@ -135,6 +152,14 @@ export default defineNuxtPlugin((nuxtApp) => {
     index: computed(() => state.index),
     items: computed(() => state.items),
     open,
+    configure: (options) => {
+      const { buttons, controls, ...rest } = options
+      defaults = {
+        ...defu(rest, defaults),
+        controls: { ...defaults.controls, ...controls },
+        buttons: buttons ?? defaults.buttons,
+      }
+    },
     close: () => instance?.close(),
     next: () => instance?.next(),
     prev: () => instance?.prev(),

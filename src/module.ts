@@ -43,6 +43,8 @@ export default defineNuxtModule<ModuleOptions>({
     maxZoom: 4,
     closeOnVerticalDrag: true,
     closeOnBackdropClick: true,
+    idleDelay: 4000,
+    idleHidesCaption: true,
     ui: {
       counter: true,
       zoom: true,
@@ -81,6 +83,8 @@ export default defineNuxtModule<ModuleOptions>({
       nuxt.options.css.push(resolver.resolve('./runtime/image-viewer.css'))
 
     addPlugin({ src: resolver.resolve('./runtime/plugin.client'), mode: 'client' })
+    addComponent({ name: 'ImageViewerGroup', filePath: resolver.resolve('./runtime/components/ImageViewerGroup.vue') })
+
     if (componentName) {
       const withNuxtImage = nuxtImage === 'auto' ? hasNuxtModule('@nuxt/image', nuxt) : nuxtImage
       addComponent({ name: componentName, filePath: resolver.resolve(`./runtime/components/${withNuxtImage ? 'ZoomNuxtImg' : 'ZoomImage'}.vue`) })

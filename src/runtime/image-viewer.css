@@ -116,6 +116,7 @@
     justify-content: space-between;
     gap: 8px;
     padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+    transition: opacity 0.3s ease-in-out;
   }
 
   .image-viewer__counter {
@@ -176,10 +177,50 @@
     stroke-linejoin: round;
   }
 
+  /* Icon of a custom button: only the size — the component draws itself, filled or
+     stroked */
+  .image-viewer__button-icon {
+    flex-shrink: 0;
+    width: var(--image-viewer-icon-size, 24px);
+    height: var(--image-viewer-icon-size, 24px);
+  }
+
+  /* A custom button with a text: a pill instead of a round icon button */
+  .image-viewer__button--has-text {
+    gap: 6px;
+    width: auto;
+    padding: 0 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    white-space: nowrap;
+  }
+
+  /* Also the wrapper of your own arrows (controls.prev / next, the #prev / #next slots):
+     it takes the place and the behaviour of the built-in arrows */
   .image-viewer__arrow {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
+    pointer-events: auto;
+    transition: background-color 0.15s, opacity 0.3s ease-in-out;
+  }
+
+  /* The built-in arrow at an end of a strip that isn't endless steps aside */
+  .image-viewer__arrow:disabled {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* An arrow of your own stays and looks disabled; the button inside doesn't react */
+  .image-viewer__arrow--own[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .image-viewer__arrow--own[aria-disabled="true"] > * {
+    pointer-events: none;
   }
 
   .image-viewer__arrow--prev {
@@ -212,6 +253,19 @@
     opacity: 0;
   }
 
+  /* The mouse rests (idleDelay): the controls fade out, and the caption too unless
+     idleHidesCaption is off. Hidden buttons don't catch clicks */
+  .image-viewer--idle .image-viewer__toolbar,
+  .image-viewer--idle .image-viewer__arrow,
+  .image-viewer--idle-caption .image-viewer__caption {
+    opacity: 0;
+  }
+
+  .image-viewer--idle .image-viewer__button,
+  .image-viewer--idle .image-viewer__arrow {
+    pointer-events: none;
+  }
+
   .image-viewer__caption-text {
     max-width: 100%;
     padding: 6px 12px;
@@ -226,6 +280,7 @@
   @media (prefers-reduced-motion: reduce) {
     .image-viewer__img--full,
     .image-viewer__button,
+    .image-viewer__toolbar,
     .image-viewer__caption {
       transition: none;
     }

@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import type { Component, Ref } from 'vue'
 
 /** Accessible names of the dialog and its controls. */
 export interface ImageViewerLabels {
@@ -64,6 +64,19 @@ export interface ImageViewerBehavior {
    * @default true
    */
   closeOnBackdropClick: boolean
+  /**
+   * Fade the controls out after the mouse rests for this long, ms — the image is left
+   * alone. Any mouse move or key brings them back. `0` keeps them shown. Only on
+   * devices with a mouse: touch screens keep the controls.
+   * @default 4000
+   */
+  idleDelay: number
+  /**
+   * Fade the caption out together with the controls. `false` leaves the image with its
+   * caption.
+   * @default true
+   */
+  idleHidesCaption: boolean
   /** Which controls to show. */
   ui: ImageViewerUi
   /** Accessible names of the dialog and its buttons. */
@@ -92,10 +105,83 @@ export interface ImageViewerConfig extends ImageViewerBehavior {
   autoOpen: boolean
 }
 
-/** Per-call overrides of the global options. */
+interface ImageViewerButtonBase {
+  /** Unique name. Also the class modifier: `.image-viewer__button--{name}`. */
+  name: string
+  onClick: (context: { item: ImageViewerSlide, index: number, close: () => void }) => void
+}
+
+/**
+ * Icon of a custom button: an icon name drawn by Nuxt Icon (included in Nuxt UI), as in
+ * `<UIcon name>`, or any component.
+ * @example 'i-lucide-download'
+ */
+export type ImageViewerButtonIcon = string | Component
+
+/**
+ * A button of your own in the toolbar, before the built-in ones: an icon, a text, or
+ * both. An icon-only button needs a `label` — its accessible name.
+ *
+ * @example
+ * const download: ImageViewerButton = {
+ *   name: 'download',
+ *   label: 'Download',
+ *   icon: 'i-lucide-download',
+ *   onClick: ({ item }) => window.open(item.src),
+ * }
+ *
+ * const share: ImageViewerButton = {
+ *   name: 'share',
+ *   text: 'Share',
+ *   onClick: ({ item }) => navigator.share?.({ url: item.src }),
+ * }
+ */
+export type ImageViewerButton = ImageViewerButtonBase & (
+  | {
+    icon: ImageViewerButtonIcon
+    /** Text shown next to the icon. */
+    text?: string
+    /** Accessible name — required without `text`. */
+    label: string
+  }
+  | {
+    icon?: ImageViewerButtonIcon
+    /** Text on the button; also its accessible name unless `label` is set. */
+    text: string
+    label?: string
+  }
+)
+
+/**
+ * Your own components in place of the built-in prev / next arrows — a `UButton`, your
+ * own SFC or a render function. They need no props: the viewer puts them in the
+ * arrow's place, scrolls on their click, hides them at the ends of a strip, on touch
+ * screens and when the mouse rests, and gives an icon-only button the label.
+ *
+ * @example
+ * useImageViewer().configure({
+ *   controls: {
+ *     prev: () => h(UButton, { icon: 'i-lucide-arrow-left' }),
+ *     next: () => h(UButton, { icon: 'i-lucide-arrow-right' }),
+ *   },
+ * })
+ */
+export interface ImageViewerControls {
+  prev: Component
+  next: Component
+}
+
+/**
+ * Per-call overrides of the global options. Also takes custom `buttons` — they hold
+ * functions, so they can't live in `nuxt.config`.
+ */
 export type ImageViewerOpenOptions = Partial<Omit<ImageViewerBehavior, 'ui' | 'labels'>> & {
   ui?: Partial<ImageViewerUi>
   labels?: Partial<ImageViewerLabels>
+  /** Your own components in place of built-in controls. */
+  controls?: Partial<ImageViewerControls>
+  /** Buttons of your own. Replace the ones set with `configure()`. */
+  buttons?: ImageViewerButton[]
 }
 
 /** One image of the viewer. Only `src` is required. */
@@ -144,6 +230,13 @@ export interface ImageViewerApi {
    * @param options overrides of the global options for this viewer only
    */
   open: (items: ImageViewerItem | ImageViewerItem[], index?: number, options?: ImageViewerOpenOptions) => Promise<void>
+  /**
+   * Set options for every viewer from now on, on top of `nuxt.config` — including the
+   * ones opened by a click on an image. The place for custom `buttons`, which can't be
+   * in `nuxt.config`. Call it in a client plugin.
+   * @example useImageViewer().configure({ buttons: [downloadButton] })
+   */
+  configure: (options: ImageViewerOpenOptions) => void
   /** Close with the animation back into the page. */
   close: () => void
   next: () => void

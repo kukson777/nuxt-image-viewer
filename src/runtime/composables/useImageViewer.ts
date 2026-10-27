@@ -18,6 +18,7 @@ export function useImageViewer(): ImageViewerApi {
     index: computed(() => 0),
     items: computed(() => []),
     open: async () => {},
+    configure: noop,
     close: noop,
     next: noop,
     prev: noop,

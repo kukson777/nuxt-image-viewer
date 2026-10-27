@@ -332,6 +332,14 @@ npm run test         # e2e: SSR + browser (local: system Edge, CI: Chromium)
 npm run test:types
 ```
 
+### Releasing
+
+Release notes follow Nuxt: a **Highlights** part written by hand, then the changelog generated from conventional commits.
+
+1. `npm run release:notes` — bumps the version from the commits and adds the generated section to `CHANGELOG.md`.
+2. Write the highlights at the top of that section: a one-line summary, what's new with a short example each, and how to upgrade.
+3. `npm run release` — lint and tests, then the release commit and tag, `npm publish`, push, and a GitHub release with the notes from `CHANGELOG.md`.
+
 ## License
 
 [MIT](./LICENSE)

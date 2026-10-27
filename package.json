@@ -48,13 +48,14 @@
     "dev": "npm run dev:prepare && nuxt dev playground",
     "dev:build": "nuxt build playground",
     "dev:prepare": "nuxt-module-build build --stub && nuxt-module-build prepare && nuxt prepare playground",
-    "release": "npm run lint && npm run test && npm run prepack && changelogen --release && npm publish && git push --follow-tags",
+    "release": "npm run lint && npm run test && node scripts/release.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit",
     "docs:dev": "npm run dev:prepare && cd docs && nuxt dev",
-    "docs:build": "nuxt-module-build prepare && nuxt-module-build build && cd docs && nuxt generate"
+    "docs:build": "nuxt-module-build prepare && nuxt-module-build build && cd docs && nuxt generate",
+    "release:notes": "changelogen --bump && npm install --package-lock-only --ignore-scripts"
   },
   "dependencies": {
     "@nuxt/kit": "^4.6.2",
@@ -74,5 +75,8 @@
     "typescript": "^6.0.3",
     "vitest": "^5.0.3",
     "vue-tsc": "^3.3.12"
+  },
+  "changelog": {
+    "hideAuthorEmail": true
   }
 }

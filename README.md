@@ -337,7 +337,7 @@ npm run test:types
 Release notes follow Nuxt: a **Highlights** part written by hand, then the changelog generated from conventional commits.
 
 1. `npm run release:notes` — bumps the version from the commits and adds the generated section to `CHANGELOG.md`.
-2. Write the highlights at the top of that section: a one-line summary, what's new with a short example each, and how to upgrade.
+2. Write the highlights at the top of that section: a one-line summary, what's new with a short example each, and how to upgrade. Read the generated list too: a commit that brought several changes is one line there — give each change its own line, so the list shows everything the release has.
 3. `npm run release` — lint and tests, then the release commit and tag, `npm publish`, push, and a GitHub release with the notes from `CHANGELOG.md`.
 
 ## License
